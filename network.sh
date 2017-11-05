@@ -18,7 +18,7 @@ COMPOSE_TEMPLATE=ledger/docker-composetemplate.yaml
 COMPOSE_FILE_DEV=ledger/docker-composedev.yaml
 
 CHAINCODE_COMMON_NAME=vote
-CHAINCODE_COMMON_INIT='{"Args":["init","a","100","b","100"]}'
+CHAINCODE_COMMON_INIT='{"Args":["init"]}'
 CHAINCODE_WARMUP_QUERY='{\"Args\":[\"query\"]}'
 
 DEFAULT_ORDERER_PORT=7050
@@ -262,11 +262,12 @@ function instantiateChaincode () {
     channel_name=$2
     n=$3
     i=$4
+    p=$5
     f="ledger/docker-compose-${org}.yaml"
 
     info "instantiating chaincode $n on $channel_name by $org using $f with $i"
 
-    c="CORE_PEER_ADDRESS=peer0.$org.$DOMAIN:7051 peer chaincode instantiate -n $n -v 1.0 -c '$i' -o orderer.$DOMAIN:7050 -C $channel_name --tls --cafile /etc/hyperledger/crypto/orderer/tls/ca.crt"
+    c="CORE_PEER_ADDRESS=peer0.$org.$DOMAIN:7051 peer chaincode instantiate -n $n -v 1.0 -c '$i' -o orderer.$DOMAIN:7050 -C $channel_name --tls --cafile /etc/hyperledger/crypto/orderer/tls/ca.crt -P \"$p\""
     echo ${c}
 
     docker-compose --file ${f} run --rm "cli.$org.$DOMAIN" bash -c "${c}"
@@ -292,7 +293,7 @@ function installChaincode() {
     org=$1
     n=$2
     # chaincode path is the same as chaincode name by convention: code of chaincode instruction lives in ./chaincode/go/instruction mapped to docker path /opt/gopath/src/instruction
-    p=${n}
+    p=$3
     f="ledger/docker-compose-${org}.yaml"
 
     info "installing chaincode $n to peers of $org from ./chaincode/go/$p using $f"
@@ -326,9 +327,9 @@ function dockerComposeDown () {
 function installAll() {
   org=$1
 
-  for chaincode_name in ${CHAINCODE_COMMON_NAME}
+  for chaincode_name in vote-all vote-eu vote-ch
   do
-    installChaincode ${org} ${chaincode_name}
+    installChaincode ${org} ${chaincode_name} vote
   done
 }
 
@@ -368,10 +369,11 @@ function createJoinInstantiateWarmUp() {
   channel_name=${2}
   chaincode_name=${3}
   chaincode_init=${4}
+  policy=${5}
 
   createChannel ${org} ${channel_name}
   joinChannel ${org} ${channel_name}
-  instantiateChaincode ${org} ${channel_name} ${chaincode_name} ${chaincode_init}
+  instantiateChaincode ${org} ${channel_name} ${chaincode_name} ${chaincode_init} ${policy}
   sleep 7
   warmUpChaincode ${org} ${channel_name} ${chaincode_name}
 }
@@ -667,11 +669,15 @@ if [ "${MODE}" == "up" -a "${ORG}" == "" ]; then
     installAll ${org}
   done
 
-  createJoinInstantiateWarmUp ${ORG1} common ${CHAINCODE_COMMON_NAME} ${CHAINCODE_COMMON_INIT}
+  createJoinInstantiateWarmUp ${ORG1} common "vote-all" ${CHAINCODE_COMMON_INIT} "AND('deMSP.member','atMSP.member','chMSP.member')"
 
-  joinWarmUp ${ORG2} common ${CHAINCODE_COMMON_NAME}
+  instantiateChaincode ${ORG1} common "vote-eu" ${CHAINCODE_COMMON_INIT} "AND('deMSP.member','atMSP.member')"
 
-  joinWarmUp ${ORG3} common ${CHAINCODE_COMMON_NAME}
+  instantiateChaincode ${ORG1} common "vote-ch" ${CHAINCODE_COMMON_INIT} "AND('chMSP.member')"
+
+  joinWarmUp ${ORG2} common "vote-all"
+
+  joinWarmUp ${ORG3} common "vote-all"
 
 elif [ "${MODE}" == "down" ]; then
   dockerComposeDown ${DOMAIN}

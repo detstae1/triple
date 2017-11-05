@@ -49,6 +49,8 @@ func (t *VoteChaincode) cast(stub shim.ChaincodeStubInterface, args []string) pb
 
 	creatorBytes, err := stub.GetCreator()
 
+	//stub.GetSignedProposal()
+
 	if err != nil {
 		return shim.Error("cannot GetCreator")
 	}
