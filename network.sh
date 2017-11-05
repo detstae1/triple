@@ -22,6 +22,10 @@ CHAINCODE_ALL_INIT='{"Args":["init","de","ch","at"]}'
 CHAINCODE_EU_INIT='{"Args":["init","de","at"]}'
 CHAINCODE_CH_INIT='{"Args":["init","ch"]}'
 
+CHAINCODE_EU_POLICY="AND('deMSP.member','atMSP.member')"
+CHAINCODE_CH_POLICY="AND('chMSP.member')"
+CHAINCODE_ALL_POLICY="AND('deMSP.member','atMSP.member','chMSP.member')"
+
 CHAINCODE_WARMUP_QUERY='{\"Args\":[\"query\"]}'
 
 DEFAULT_ORDERER_PORT=7050
@@ -672,11 +676,11 @@ if [ "${MODE}" == "up" -a "${ORG}" == "" ]; then
     installAll ${org}
   done
 
-  createJoinInstantiateWarmUp ${ORG1} common "vote-all" ${CHAINCODE_ALL_INIT} "AND('deMSP.member','atMSP.member','chMSP.member')"
+  createJoinInstantiateWarmUp ${ORG1} common "vote-all" ${CHAINCODE_ALL_INIT} ${CHAINCODE_ALL_POLICY}
 
-  instantiateChaincode ${ORG1} common "vote-eu" ${CHAINCODE_EU_INIT} "AND('deMSP.member','atMSP.member')"
+  instantiateChaincode ${ORG1} common "vote-eu" ${CHAINCODE_EU_INIT} ${CHAINCODE_EU_POLICY}
 
-  instantiateChaincode ${ORG1} common "vote-ch" ${CHAINCODE_CH_INIT} "AND('chMSP.member')"
+  instantiateChaincode ${ORG1} common "vote-ch" ${CHAINCODE_CH_INIT} ${CHAINCODE_CH_POLICY}
 
   joinWarmUp ${ORG2} common "vote-all"
 
@@ -710,42 +714,31 @@ elif [ "${MODE}" == "up-orderer" ]; then
   dockerComposeUp ${DOMAIN}
   serveOrdererArtifacts
 elif [ "${MODE}" == "up-1" ]; then
-  downloadArtifactsMember ${ORG1} common "${ORG1}-${ORG2}" "${ORG1}-${ORG3}"
+  downloadArtifactsMember ${ORG1} common
   dockerComposeUp ${ORG1}
   installAll ${ORG1}
 
-  createJoinInstantiateWarmUp ${ORG1} common ${CHAINCODE_COMMON_NAME} ${CHAINCODE_COMMON_INIT}
+  createJoinInstantiateWarmUp ${ORG1} common "vote-all" ${CHAINCODE_ALL_INIT} ${CHAINCODE_ALL_POLICY}
 
-  createJoinInstantiateWarmUp ${ORG1} "${ORG1}-${ORG2}" ${CHAINCODE_BILATERAL_NAME} ${CHAINCODE_BILATERAL_INIT}
+  instantiateChaincode ${ORG1} common "vote-eu" ${CHAINCODE_EU_INIT} ${CHAINCODE_EU_POLICY}
 
-  createJoinInstantiateWarmUp ${ORG1} "${ORG1}-${ORG3}" ${CHAINCODE_BILATERAL_NAME} ${CHAINCODE_BILATERAL_INIT}
+  instantiateChaincode ${ORG1} common "vote-ch" ${CHAINCODE_CH_INIT} ${CHAINCODE_CH_POLICY}
 
 elif [ "${MODE}" == "up-2" ]; then
-  downloadArtifactsMember ${ORG2} common "${ORG1}-${ORG2}" "${ORG2}-${ORG3}"
+  downloadArtifactsMember ${ORG2} common
   dockerComposeUp ${ORG2}
   installAll ${ORG2}
 
   downloadChannelBlockFile ${ORG2} ${ORG1} common
-  joinWarmUp ${ORG2} common ${CHAINCODE_COMMON_NAME}
-
-  downloadChannelBlockFile ${ORG2} ${ORG1} "${ORG1}-${ORG2}"
-  joinWarmUp ${ORG2} "${ORG1}-${ORG2}" ${CHAINCODE_BILATERAL_NAME}
-
-  createJoinInstantiateWarmUp ${ORG2} "${ORG2}-${ORG3}" ${CHAINCODE_BILATERAL_NAME} ${CHAINCODE_BILATERAL_INIT}
+  joinWarmUp ${ORG2} common "vote-all"
 
 elif [ "${MODE}" == "up-3" ]; then
-  downloadArtifactsMember ${ORG3} common "${ORG1}-${ORG3}" "${ORG2}-${ORG3}"
+  downloadArtifactsMember ${ORG3} common
   dockerComposeUp ${ORG3}
   installAll ${ORG3}
 
   downloadChannelBlockFile ${ORG3} ${ORG1} common
-  joinWarmUp ${ORG3} common ${CHAINCODE_COMMON_NAME}
-
-  downloadChannelBlockFile ${ORG3} ${ORG2} "${ORG2}-${ORG3}"
-  joinWarmUp ${ORG3} "${ORG2}-${ORG3}" ${CHAINCODE_BILATERAL_NAME}
-
-  downloadChannelBlockFile ${ORG3} ${ORG1} "${ORG1}-${ORG3}"
-  joinWarmUp ${ORG3} "${ORG1}-${ORG3}" ${CHAINCODE_BILATERAL_NAME}
+  joinWarmUp ${ORG3} common "vote-all"
 
 elif [ "${MODE}" == "logs" ]; then
   logs ${ORG}
