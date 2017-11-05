@@ -49,18 +49,31 @@ func (t *VoteChaincode) cast(stub shim.ChaincodeStubInterface, args []string) pb
 
 	creatorBytes, err := stub.GetCreator()
 
-	//stub.GetSignedProposal()
-
 	if err != nil {
-		return shim.Error("cannot GetCreator")
+		return shim.Error(err.Error())
 	}
 
 	user, org := getCreator(creatorBytes)
 
+	signedProposal, err := stub.GetSignedProposal()
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	logger.Debug(signedProposal.String())
+
+	descriptorBytes, _ := signedProposal.Descriptor()
+
+	logger.Debug(descriptorBytes)
+
+	proposalBytes := signedProposal.GetProposalBytes()
+
+	logger.Debug(proposalBytes)
+
 	key, err := stub.CreateCompositeKey("Vote", []string{question, org, user})
 
 	if err != nil {
-		return shim.Error("cannot CreateCompositeKey")
+		return shim.Error(err.Error())
 	}
 
 	stub.PutState(key, []byte(answer))

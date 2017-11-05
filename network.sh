@@ -493,19 +493,19 @@ function devNetworkDown () {
 }
 
 function devInstall () {
-  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode install -p relationship -n mycc -v 0"
+  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode install -p vote -n vote -v 0"
 }
 
 function devInstantiate () {
-  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode instantiate -n mycc -v 0 -C myc -c '{\"Args\":[\"init\",\"a\",\"10\",\"b\",\"100\"]}'"
+  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode instantiate -n vote -v 0 -C myc -c '{\"Args\":[\"init\"]}'"
 }
 
 function devInvoke () {
-  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode invoke -n mycc -v 0 -C myc -c '{\"Args\":[\"move\",\"a\",\"b\",\"10\"]}'"
+  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode invoke -n vote -v 0 -C myc -c '{\"Args\":[\"cast\",\"catalonia\",\"yes\"]}'"
 }
 
 function devQuery () {
-  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode query -n mycc -v 0 -C myc -c '{\"Args\":[\"query\",\"a\"]}'"
+  docker-compose -f ${COMPOSE_FILE_DEV} run cli bash -c "peer chaincode query -n vote -v 0 -C myc -c '{\"Args\":[\"query\",\"catalonia\"]}'"
 }
 
 function info() {
