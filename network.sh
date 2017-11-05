@@ -4,13 +4,13 @@ starttime=$(date +%s)
 
 # defaults; export these variables before executing this script
 : ${DOMAIN:="blockvote.ch"}
-: ${IP_ORDERER:="54.234.201.67"}
+: ${IP_ORDERER:="54.174.227.99"}
 : ${ORG1:="de"}
 : ${ORG2:="at"}
 : ${ORG3:="ch"}
-: ${IP1:="54.86.191.160"}
-: ${IP2:="54.243.0.168"}
-: ${IP3:="54.211.142.174"}
+: ${IP1:="34.227.113.32"}
+: ${IP2:="54.167.13.251"}
+: ${IP3:="54.164.15.254"}
 
 WGET_OPTS="--verbose -N"
 CLI_TIMEOUT=10000
