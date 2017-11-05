@@ -9,6 +9,7 @@ import (
 	"strings"
 	"encoding/pem"
 	"crypto/x509"
+	"encoding/json"
 )
 
 var logger = shim.NewLogger("VoteChaincode")
@@ -17,14 +18,14 @@ type VoteChaincode struct {
 }
 
 type VoteKey struct {
-	question string
-	org string
-	user string
+	Question string
+	Org string
+	User string
 }
 
 type Vote struct {
-	key VoteKey
-	answer uint8
+	Key VoteKey
+	Answer string
 }
 
 func (t *VoteChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
@@ -66,8 +67,56 @@ func (t *VoteChaincode) cast(stub shim.ChaincodeStubInterface, args []string) pb
 }
 
 func (t *VoteChaincode) query(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	var keys []string
 
-	return shim.Success(nil)
+	if len(args) > 2 {
+		return pb.Response{Status:400, Message:"Incorrect number of arguments"}
+	} else if len(args) == 1 {
+		question := args[0]
+		keys = []string{question}
+	} else if len(args) == 2 {
+		question := args[0]
+		org := args[1]
+		keys = []string{question, org}
+	}
+
+	it, err := stub.GetStateByPartialCompositeKey("Vote", keys)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	defer it.Close()
+
+	arr := []Vote{}
+	for it.HasNext() {
+		next, err := it.Next()
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+
+		var voteValue string
+		err = json.Unmarshal(next.Value, &voteValue)
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+
+		_, keys, err := stub.SplitCompositeKey(next.Key)
+		if err != nil {
+			return shim.Error(err.Error())
+		}
+
+		voteKey := VoteKey{Question: keys[0], Org: keys[1]}
+
+		vote := Vote{Key: voteKey, Answer: voteValue}
+
+		arr = append(arr, vote)
+	}
+
+	ret, err := json.Marshal(arr)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	return shim.Success(ret)
 }
 
 var getCreator = func (certificate []byte) (string, string) {
