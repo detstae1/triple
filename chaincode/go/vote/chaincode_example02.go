@@ -93,11 +93,13 @@ func (t *VoteChaincode) query(stub shim.ChaincodeStubInterface, args []string) p
 			return shim.Error(err.Error())
 		}
 
-		var voteValue string
+		/*var voteValue string
 		err = json.Unmarshal(next.Value, &voteValue)
 		if err != nil {
 			return shim.Error(err.Error())
-		}
+		}*/
+
+		voteValue := string(next.Value)
 
 		_, keys, err := stub.SplitCompositeKey(next.Key)
 		if err != nil {
