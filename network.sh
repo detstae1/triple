@@ -18,7 +18,10 @@ COMPOSE_TEMPLATE=ledger/docker-composetemplate.yaml
 COMPOSE_FILE_DEV=ledger/docker-composedev.yaml
 
 CHAINCODE_COMMON_NAME=vote
-CHAINCODE_COMMON_INIT='{"Args":["init"]}'
+CHAINCODE_ALL_INIT='{"Args":["init","de","ch","at"]}'
+CHAINCODE_EU_INIT='{"Args":["init","de","at"]}'
+CHAINCODE_CH_INIT='{"Args":["init","ch"]}'
+
 CHAINCODE_WARMUP_QUERY='{\"Args\":[\"query\"]}'
 
 DEFAULT_ORDERER_PORT=7050
@@ -669,11 +672,11 @@ if [ "${MODE}" == "up" -a "${ORG}" == "" ]; then
     installAll ${org}
   done
 
-  createJoinInstantiateWarmUp ${ORG1} common "vote-all" ${CHAINCODE_COMMON_INIT} "AND('deMSP.member','atMSP.member','chMSP.member')"
+  createJoinInstantiateWarmUp ${ORG1} common "vote-all" ${CHAINCODE_ALL_INIT} "AND('deMSP.member','atMSP.member','chMSP.member')"
 
-  instantiateChaincode ${ORG1} common "vote-eu" ${CHAINCODE_COMMON_INIT} "AND('deMSP.member','atMSP.member')"
+  instantiateChaincode ${ORG1} common "vote-eu" ${CHAINCODE_EU_INIT} "AND('deMSP.member','atMSP.member')"
 
-  instantiateChaincode ${ORG1} common "vote-ch" ${CHAINCODE_COMMON_INIT} "AND('chMSP.member')"
+  instantiateChaincode ${ORG1} common "vote-ch" ${CHAINCODE_CH_INIT} "AND('chMSP.member')"
 
   joinWarmUp ${ORG2} common "vote-all"
 

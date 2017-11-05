@@ -10,9 +10,12 @@ import (
 	"encoding/pem"
 	"crypto/x509"
 	"encoding/json"
+	"bytes"
+	"encoding/gob"
 )
 
 var logger = shim.NewLogger("VoteChaincode")
+
 
 type VoteChaincode struct {
 }
@@ -29,6 +32,14 @@ type Vote struct {
 }
 
 func (t *VoteChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
+	allowedOrgs := stub.GetStringArgs()
+
+	buf := &bytes.Buffer{}
+	gob.NewEncoder(buf).Encode(allowedOrgs)
+	bs := buf.Bytes()
+
+	stub.PutState("allowedOrgs", bs)
+
 	return shim.Success(nil)
 }
 
@@ -50,30 +61,27 @@ func (t *VoteChaincode) cast(stub shim.ChaincodeStubInterface, args []string) pb
 	creatorBytes, err := stub.GetCreator()
 
 	if err != nil {
-		return shim.Error(err.Error())
+		return shim.Error("cannot GetCreator")
 	}
 
 	user, org := getCreator(creatorBytes)
 
-	signedProposal, err := stub.GetSignedProposal()
+	// check if allowed
+	bs, err := stub.GetState("allowedOrgs")
 	if err != nil {
-		return shim.Error(err.Error())
+		return shim.Error("cannot get allowed orgs")
 	}
+	allowedOrgs := []string{}
+	gob.NewDecoder(bytes.NewReader(bs)).Decode(&allowedOrgs)
 
-	logger.Debug(signedProposal.String())
-
-	descriptorBytes, _ := signedProposal.Descriptor()
-
-	logger.Debug(descriptorBytes)
-
-	proposalBytes := signedProposal.GetProposalBytes()
-
-	logger.Debug(proposalBytes)
+	if !contains(allowedOrgs, org) {
+		return shim.Error("not allowed to vote!")
+	}
 
 	key, err := stub.CreateCompositeKey("Vote", []string{question, org, user})
 
 	if err != nil {
-		return shim.Error(err.Error())
+		return shim.Error("cannot CreateCompositeKey")
 	}
 
 	stub.PutState(key, []byte(answer))
@@ -147,6 +155,15 @@ var getCreator = func (certificate []byte) (string, string) {
 	organizationShort := strings.Split(organization, ".")[0]
 
 	return commonName, organizationShort
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
